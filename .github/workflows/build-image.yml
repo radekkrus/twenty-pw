@@ -1,0 +1,75 @@
+name: build image
+
+# The only workflow in this fork. Upstream's ~39 workflows were deleted on the first
+# commit: they build docs, run e2e suites, push i18n and dispatch deploys into
+# twentyhq/twenty-infra, none of which exists for us, and several would fail loudly or
+# burn minutes on every push.
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  # A second push while a 40-minute build is running should replace it, not queue.
+  group: build-image
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    # The front build alone asks for 8 GB of Node heap; the whole thing is a large
+    # TypeScript monorepo. 90 minutes is headroom, not an estimate.
+    timeout-minutes: 90
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Image metadata
+        id: meta
+        env:
+          SHA: ${{ github.sha }}
+        run: |
+          echo "sha_short=${SHA:0:9}" >> "$GITHUB_OUTPUT"
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: packages/twenty-docker/twenty/Dockerfile
+          # `twenty` = server + frontend, which is what the box runs. `twenty-server`
+          # would drop dist/front and serve nothing.
+          target: twenty
+          push: true
+          provenance: false
+          build-args: |
+            APP_VERSION=v2.26.0-pw
+          tags: |
+            ghcr.io/radekkrus/twenty-pw:${{ steps.meta.outputs.sha_short }}
+            ghcr.io/radekkrus/twenty-pw:v2.26.0-pw
+            ghcr.io/radekkrus/twenty-pw:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Report
+        run: |
+          echo "### Image pushed" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          echo "ghcr.io/radekkrus/twenty-pw:${{ steps.meta.outputs.sha_short }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "ghcr.io/radekkrus/twenty-pw:v2.26.0-pw" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
