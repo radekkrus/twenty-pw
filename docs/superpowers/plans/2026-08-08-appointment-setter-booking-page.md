@@ -30,15 +30,82 @@ seed.
   already-existing object-record hooks or the Cal.com embed — if a task seems to need a
   new NestJS endpoint, stop and re-check against the design spec before writing one; that
   would be a scope signal the spec didn't anticipate.
-- Work in the dedicated worktree `twenty-pw-appointment-booking` (branch
-  `feat/appointment-booking`, already created, already has one commit —
-  `DeployStatusBar` — from a prior side-task in this session). Do not work in the shared
-  primary `twenty-pw` checkout.
+- Work in the dedicated worktree at
+  `Projects/twenty-pw/twenty-pw-appointment-booking` (branch `feat/appointment-booking`,
+  already created, already has one commit — `DeployStatusBar` — from a prior side-task in
+  this session). Note the nesting: it's a worktree *inside* the primary `twenty-pw`
+  checkout's directory, not a sibling — a mistake made once already this session when
+  creating it; don't "fix" the path by moving it, `git worktree` already knows where it
+  is. Do not work in the shared primary `twenty-pw` checkout itself.
+- **Confirmed pre-existing, repo-wide, and not this plan's problem to fix in-line**: a bare
+  `tsc --noEmit -p packages/twenty-front/tsconfig.json` fails with ~14,600 lines of
+  `Cannot find module 'twenty-shared/...'`/`'twenty-ui/...'` errors on a fresh checkout,
+  identical on the primary checkout and this worktree alike — `twenty-shared`/`twenty-ui`
+  need to be built first, normally via Nx, but `nx show projects` currently returns `[]`
+  (broken project graph, cause unknown). Task 0 below fixes this once, so every later
+  task's build/test steps actually mean something instead of drowning in unrelated noise.
 - Before pushing/deploying: this fork's CI (`.github/workflows/build-image.yml`) builds and
   pushes a new image on every push to `main` — do not push to `main` directly mid-plan.
   Merge to `main` only once this whole plan is done and verified per Task 7.
 - Copy: Polish user-facing strings (this is a Polish-market CRM), same as everywhere else
   in this fork's Partner Wzrostu-specific pages. Code/comments in English.
+
+---
+
+### Task 0: Fix the fork's build bootstrap
+
+**Files:** none expected (environment/tooling fix — if it turns out a real source file
+needs to change, that's new information this task should surface, not something to
+route around).
+
+**Interfaces:**
+- Consumes: nothing.
+- Produces: a working `npx nx run twenty-front:typecheck` (or equivalent) in the
+  `twenty-pw-appointment-booking` worktree, which every later task's build/test steps
+  depend on to mean anything.
+
+- [ ] **Step 1: Diagnose why Nx sees no projects**
+
+Run: `npx nx show projects` (from `packages/twenty-front` and from repo root — try both,
+Nx's project discovery is workspace-root-relative and the wrong cwd is a common cause of
+an empty list). If both are empty, check `nx.json` and `packages/twenty-front/project.json`
+(or `package.json`'s `nx` key, depending on how this version of Nx declares projects) exist
+and are well-formed, and try `npx nx reset` (clears the Nx daemon/cache — safe, no data
+loss) followed by a retry.
+
+- [ ] **Step 2: Build the shared packages**
+
+Once Nx sees the projects, run whatever target actually builds `twenty-shared` and
+`twenty-ui` (likely `npx nx run twenty-shared:build` and `npx nx run twenty-ui:build`, or
+a combined `npx nx run-many -t build --projects=twenty-shared,twenty-ui` — check
+`packages/twenty-shared/package.json` and `packages/twenty-ui/package.json` for the
+project's actual target names first rather than guessing).
+
+- [ ] **Step 3: Verify**
+
+Run: `npx nx run twenty-front:typecheck` (or `npx tsc --noEmit -p packages/twenty-front/tsconfig.json`
+if no typecheck target exists). Expected: the `Cannot find module 'twenty-shared/...'`
+class of error is gone. Any *remaining* errors at this point are real and should be read,
+not dismissed — this task's job is removing the noise, not guaranteeing zero errors from
+whatever's already on this branch.
+
+- [ ] **Step 4: Document what fixed it**
+
+If this needed anything beyond "build the two packages" (a config fix, a missing env var,
+an Nx version mismatch) — write one paragraph in this plan file's own "Self-review notes"
+section (append, don't rewrite) explaining what was actually wrong, so the next person
+bootstrapping a fresh `twenty-pw` worktree doesn't repeat this investigation from scratch.
+
+- [ ] **Step 5: Commit, if Step 1-2 touched any tracked file**
+
+```bash
+git add -A
+git status  # confirm only intended files are staged before committing
+git commit -m "chore(build): fix Nx project graph / bootstrap shared package builds"
+```
+
+If nothing tracked changed (purely a local build-artifact/cache fix), skip this step —
+say so explicitly rather than committing an empty commit.
 
 ---
 
