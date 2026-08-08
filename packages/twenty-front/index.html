@@ -80,6 +80,26 @@
         }
       }
     </style>
+
+    <!--
+      🔴 Fork addition, not upstream. Partner Wzrostu skin and view-state runtime.
+
+      These three files are NOT bundled. They are served by Caddy from /root/caddy/brand/
+      (see infra/caddy/Caddyfile in partner-wzrostu-crm), which is deliberate: editing the
+      skin or the view-state heuristics is an rsync and a hard reload, with no image build
+      and no restart. Caddy caches them for 300 s.
+
+      This replaces a `sed` in the compose entrypoint that rewrote dist/front/index.html on
+      every container boot. That was best-effort by nature: if an image ever moved the
+      file, the sed silently did nothing and the skin disappeared with no error anywhere.
+
+      palyri-skin.js stamps data-pl attributes on the record drawer because Twenty builds
+      it from vanilla-extract classes whose hashes move on every build, so CSS cannot
+      target it directly. It only sets attributes, so React's reconciler never sees it.
+    -->
+    <link rel="stylesheet" id="palyri-skin" href="/brand/palyri-skin.css" />
+    <script defer src="/brand/palyri-skin.js"></script>
+    <script defer src="/brand/view-state.js"></script>
   </head>
   <body>
     <noscript>You need to enable JavaScript to run this app.</noscript>

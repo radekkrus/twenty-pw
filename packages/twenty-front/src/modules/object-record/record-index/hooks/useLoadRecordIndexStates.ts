@@ -38,6 +38,7 @@ import { useAtomComponentStateCallbackState } from '@/ui/utilities/state/jotai/h
 import { hasInitializedCurrentRecordFieldsComponentFamilyState } from '@/views/states/hasInitializedCurrentRecordFieldsComponentFamilyState';
 import { hasInitializedCurrentRecordFiltersComponentFamilyState } from '@/views/states/hasInitializedCurrentRecordFiltersComponentFamilyState';
 import { hasInitializedCurrentRecordSortsComponentFamilyState } from '@/views/states/hasInitializedCurrentRecordSortsComponentFamilyState';
+import { restoreViewState } from '@/views/utils/viewStateBridge';
 import { type View } from '@/views/types/View';
 import { mapViewFieldToRecordField } from '@/views/utils/mapViewFieldToRecordField';
 import { mapViewFieldsToColumnDefinitions } from '@/views/utils/mapViewFieldsToColumnDefinitions';
@@ -316,17 +317,39 @@ export const useLoadRecordIndexStates = () => {
 
       store.set(
         atom(null, (get, batchSet) => {
-          batchSet(currentRecordFiltersAtom, recordFilters);
-          batchSet(currentRecordFilterGroupsAtom, recordFilterGroups);
+          // 🔴 Fork addition. Before pouring the view into the atoms, ask whether the
+          // browser is holding a newer unsaved version of this view. Null means no, and
+          // every line below then uses the view's own values exactly as upstream does.
+          const restored = restoreViewState({
+            store,
+            viewId: view.id,
+            filtersAtom: currentRecordFiltersAtom,
+            groupsAtom: currentRecordFilterGroupsAtom,
+            sortsAtom: currentRecordSortsAtom,
+            contextAtom: contextStoreTargetedRecordsRuleAtom,
+            baseline: {
+              filters: recordFilters,
+              groups: recordFilterGroups,
+              sorts: view.viewSorts,
+            },
+          });
+
+          batchSet(currentRecordFiltersAtom, restored?.filters ?? recordFilters);
+          batchSet(
+            currentRecordFilterGroupsAtom,
+            restored?.groups ?? recordFilterGroups,
+          );
           batchSet(hasInitializedFiltersAtom, true);
 
-          batchSet(currentRecordSortsAtom, view.viewSorts);
+          batchSet(currentRecordSortsAtom, restored?.sorts ?? view.viewSorts);
           batchSet(hasInitializedSortsAtom, true);
 
           const prevRule = get(contextStoreTargetedRecordsRuleAtom);
           batchSet(contextStoreTargetedRecordsRuleAtom, {
             ...prevRule,
-            filters: contextStoreFilters,
+            // The context store follows the same restore, or the record table would show
+            // the operator's filters while every bulk action worked off the view's.
+            filters: restored?.filters ?? contextStoreFilters,
           });
 
           if (!skipGlobalIndexStates) {
