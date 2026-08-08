@@ -9,6 +9,7 @@ import { contextStoreFilterGroupsComponentState } from '@/context-store/states/c
 import { contextStoreFiltersComponentState } from '@/context-store/states/contextStoreFiltersComponentState';
 import { contextStoreTargetedRecordsRuleComponentState } from '@/context-store/states/contextStoreTargetedRecordsRuleComponentState';
 import { computeContextStoreFilters } from '@/context-store/utils/computeContextStoreFilters';
+import { setFrontComponentSelection } from '@/front-components/utils/frontComponentSelectionBridge';
 import { flattenedFieldMetadataItemsSelector } from '@/object-metadata/states/flattenedFieldMetadataItemsSelector';
 import { objectMetadataItemsSelector } from '@/object-metadata/states/objectMetadataItemsSelector';
 import { type EnrichedObjectMetadataItem } from '@/object-metadata/types/EnrichedObjectMetadataItem';
@@ -110,6 +111,11 @@ export const buildHeadlessCommandContextApi = ({
         contextStoreAnyFieldFilterValue: anyFieldFilterValue,
       })
     : null;
+
+  // 🔴 Fork addition. Hand the "select all" rule and its resolved filter to the front
+  // component sandbox, which receives no ids for an exclusion-rule selection. See
+  // frontComponentSelectionBridge for why this is a singleton rather than a prop.
+  setFrontComponentSelection({ rule: targetedRecordsRule, filter: graphqlFilter });
 
   const recordIndexId =
     objectMetadataItem && currentViewId

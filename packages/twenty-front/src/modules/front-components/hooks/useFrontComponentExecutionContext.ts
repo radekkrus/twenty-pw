@@ -1,3 +1,4 @@
+import { getFrontComponentSelection } from '@/front-components/utils/frontComponentSelectionBridge';
 import { useSetAtomState } from '@/ui/utilities/state/jotai/hooks/useSetAtomState';
 import { isNonEmptyString } from '@sniptt/guards';
 import { useLingui } from '@lingui/react/macro';
@@ -289,6 +290,10 @@ export const useFrontComponentExecutionContext = ({
     userId: currentUser?.id ?? null,
     recordId: selectedRecordIds?.length === 1 ? selectedRecordIds[0] : null,
     selectedRecordIds: selectedRecordIds ?? [],
+    // 🔴 Fork addition. Null unless the host is working from a "select all" rule, in which
+    // case selectedRecordIds is empty and this is the only way an app can resolve what the
+    // operator actually ticked.
+    selectionFilter: getFrontComponentSelection(),
     colorScheme,
     // i18n.locale is a Lingui string; the host is always configured with the
     // APP_LOCALES set, so it is a valid AppLocale.
