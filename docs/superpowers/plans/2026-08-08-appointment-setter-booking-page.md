@@ -573,7 +573,7 @@ git commit -m "feat(appointment-booking): closer step - bookable roster"
   `{ closer: {name: string; calcomEventSlug: string}; leadName: string; leadEmail?: string
   }`, rendering the `<Cal>` embed. No `onBooked` callback in this task - Task 5 adds
   booking-completion detection as its own concern (Cal's embed exposes a
-  `bookingSuccessful` event via `getCalApi().on(...)`, wired up there, not here, to keep
+  `bookingSuccessfulV2` event via `getCalApi().on(...)`, wired up there, not here, to keep
   this task's test surface small).
 
 - [ ] **Step 1: Write the failing test**
@@ -672,7 +672,7 @@ git commit -m "feat(appointment-booking): slot step - Cal.com embed, prefilled"
 - Consumes: `companyId: string` (from Task 2's picked company).
 - Produces: hook `useAwaitBookingConfirmation({companyId, armed}: {companyId: string;
   armed: boolean}) => {status: 'idle' | 'waiting' | 'found' | 'timedOut'}`. `armed` flips
-  true once Cal's embed fires its `bookingSuccessful` event (wired in this task via
+  true once Cal's embed fires its `bookingSuccessfulV2` event (wired in this task via
   `getCalApi`); the hook then polls `pwMeeting` for a fresh row on that company and stops
   after finding one or after a bounded number of attempts.
 
@@ -804,7 +804,7 @@ export const SlotStep = ({ closer, leadName, leadEmail, companyId }: SlotStepPro
     (async () => {
       const cal = await getCalApi();
       cal('on', {
-        action: 'bookingSuccessful',
+        action: 'bookingSuccessfulV2',
         callback: () => setArmed(true),
       });
     })();
