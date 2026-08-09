@@ -111,6 +111,12 @@ const StandalonePageLayoutPage = lazy(() =>
   })),
 );
 
+const AppointmentBooking = lazy(() =>
+  import('~/pages/appointment-booking/AppointmentBooking').then((module) => ({
+    default: module.AppointmentBooking,
+  })),
+);
+
 const WorkspaceSetup = lazyWithPreload(() =>
   import('~/pages/onboarding/WorkspaceSetup').then((module) => ({
     default: module.WorkspaceSetup,
@@ -181,6 +187,14 @@ const createWorkspaceAppRouter = (
                 element={
                   <LazyRoute>
                     <StandalonePageLayoutPage />
+                  </LazyRoute>
+                }
+              />
+              <Route
+                path={AppPath.AppointmentBooking}
+                element={
+                  <LazyRoute>
+                    <AppointmentBooking />
                   </LazyRoute>
                 }
               />
