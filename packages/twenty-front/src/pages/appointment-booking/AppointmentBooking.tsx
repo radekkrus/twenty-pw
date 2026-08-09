@@ -2,9 +2,15 @@ import { styled } from '@linaria/react';
 import { useState } from 'react';
 import { themeCssVariables } from 'twenty-ui/theme-constants';
 
+import { CloserStep } from '~/pages/appointment-booking/components/CloserStep';
 import { LeadStep } from '~/pages/appointment-booking/components/LeadStep';
 
 type PickedCompany = { id: string; name: string };
+type PickedCloser = {
+  id: string;
+  name: string;
+  calcomEventSlug: string;
+};
 
 const StyledPage = styled.div`
   display: flex;
@@ -20,6 +26,7 @@ export const AppointmentBooking = () => {
   const [pickedCompany, setPickedCompany] = useState<PickedCompany | null>(
     null,
   );
+  const [pickedCloser, setPickedCloser] = useState<PickedCloser | null>(null);
 
   return (
     <StyledPage>
@@ -34,7 +41,22 @@ export const AppointmentBooking = () => {
               Zmień klinikę
             </button>
           </p>
-          {/* Task 3 renders <CloserStep> here once pickedCompany is set */}
+          {pickedCloser === null ? (
+            <CloserStep onPicked={setPickedCloser} />
+          ) : (
+            <div>
+              <p>
+                Closer: {pickedCloser.name}{' '}
+                <button
+                  type="button"
+                  onClick={() => setPickedCloser(null)}
+                >
+                  Zmień closer'a
+                </button>
+              </p>
+              {/* Task 4 renders <SlotStep> here once both pickedCompany and pickedCloser are set */}
+            </div>
+          )}
         </div>
       )}
     </StyledPage>
