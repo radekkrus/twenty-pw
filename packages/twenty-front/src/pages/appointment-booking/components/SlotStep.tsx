@@ -20,13 +20,28 @@ export const SlotStep = ({
   const { status } = useAwaitBookingConfirmation({ companyId, armed });
 
   useEffect(() => {
+    let cal: Awaited<ReturnType<typeof getCalApi>> | undefined;
+    let cancelled = false;
+
+    const handleBookingSuccessful = () => setArmed(true);
+
     (async () => {
-      const cal = await getCalApi();
+      const calApi = await getCalApi();
+      if (cancelled) return;
+      cal = calApi;
       cal('on', {
         action: 'bookingSuccessfulV2',
-        callback: () => setArmed(true),
+        callback: handleBookingSuccessful,
       });
     })();
+
+    return () => {
+      cancelled = true;
+      cal?.('off', {
+        action: 'bookingSuccessfulV2',
+        callback: handleBookingSuccessful,
+      });
+    };
   }, []);
 
   if (status === 'waiting') return <div>Zapisujemy w tle...</div>;
