@@ -1,4 +1,5 @@
 import { STANDARD_OBJECTS } from 'twenty-shared/metadata';
+import { AppPath } from 'twenty-shared/types';
 
 import { CommandMenuItemAvailabilityType } from 'src/engine/metadata-modules/command-menu-item/enums/command-menu-item-availability-type.enum';
 import { EngineComponentKey } from 'src/engine/metadata-modules/command-menu-item/enums/engine-component-key.enum';
@@ -1074,5 +1075,20 @@ export const STANDARD_COMMAND_MENU_ITEMS = {
     frontComponentUniversalIdentifier: null,
     engineComponentKey: EngineComponentKey.COMPOSE_EMAIL,
     hotKeys: null,
+  },
+  appointmentBooking: {
+    universalIdentifier: 'bbc62ba8-302d-415a-9153-96fd5e226b1a',
+    label: 'Nowe spotkanie',
+    icon: 'IconCalendarEvent',
+    isPinned: false,
+    position: 70,
+    shortLabel: 'Nowe spotkanie',
+    availabilityType: CommandMenuItemAvailabilityType.GLOBAL,
+    conditionalAvailabilityExpression: null,
+    availabilityObjectMetadataUniversalIdentifier: null,
+    frontComponentUniversalIdentifier: null,
+    engineComponentKey: EngineComponentKey.NAVIGATION,
+    hotKeys: null,
+    payload: { path: AppPath.AppointmentBooking },
   },
 } as const;

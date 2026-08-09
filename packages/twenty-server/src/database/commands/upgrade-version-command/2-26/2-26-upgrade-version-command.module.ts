@@ -5,6 +5,7 @@ import { WorkspaceIteratorModule } from 'src/database/commands/command-runners/w
 import { ReconcileIndexViewUniversalIdentifierCommand } from 'src/database/commands/upgrade-version-command/2-26/2-26-workspace-command-1785255689000-reconcile-index-view-universal-identifier.command';
 import { DemoteAndBackfillApplicationIndexViewCommand } from 'src/database/commands/upgrade-version-command/2-26/2-26-workspace-command-1785255690000-demote-and-backfill-application-index-view.command';
 import { AddNotRecordedCallRecordingStatusCommand } from 'src/database/commands/upgrade-version-command/2-26/2-26-workspace-command-1785334800000-add-not-recorded-call-recording-status.command';
+import { AddAppointmentBookingCommandMenuItemCommand } from 'src/database/commands/upgrade-version-command/2-26/2-26-workspace-command-1785420900000-add-appointment-booking-command-menu-item.command';
 import { ApplicationModule } from 'src/engine/core-modules/application/application.module';
 import { FieldMetadataEntity } from 'src/engine/metadata-modules/field-metadata/field-metadata.entity';
 import { ViewEntity } from 'src/engine/metadata-modules/view/entities/view.entity';
@@ -25,6 +26,7 @@ import { WorkspaceMigrationModule } from 'src/engine/workspace-manager/workspace
     ReconcileIndexViewUniversalIdentifierCommand,
     DemoteAndBackfillApplicationIndexViewCommand,
     AddNotRecordedCallRecordingStatusCommand,
+    AddAppointmentBookingCommandMenuItemCommand,
   ],
 })
 export class V2_26_UpgradeVersionCommandModule {}
