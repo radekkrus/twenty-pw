@@ -1005,3 +1005,64 @@ side-task.
   trusting a paraphrase, after this same research agent was caught citing one wrong file
   path elsewhere (`apps/meetings/scripts/` instead of the real `scripts/` at repo root)
   during this plan's preparation.
+- **Task 0 (build bootstrap), appended 2026-08-09**: `npx nx show projects` was **not**
+  empty in the session that ran Task 0, from either repo root or `packages/twenty-front` -
+  Nx project discovery worked fine, so the earlier "empty list" finding didn't reproduce
+  and Step 1 was a no-op. The real problem was that `twenty-shared` and `twenty-ui` had
+  never been built in this worktree (`twenty-shared/dist` didn't exist at all; `twenty-ui/dist`
+  only had two leftover CSS files) - the `node_modules/twenty-shared` and
+  `node_modules/twenty-ui` symlinks pointed at packages with no build output, which is what
+  produced `twenty-front`'s ~14,600 lines of `Cannot find module 'twenty-shared/...'` /
+  `'twenty-ui/...'` typecheck noise. Running the two builds surfaced two real, separate bugs
+  beyond "just build it":
+  1. **`twenty-ui:build` failed with `error TS5042: Option 'project' cannot be mixed with
+     source files on a command line.`** Root cause: `packages/twenty-ui/vite.config.ts`
+     passed an **absolute** tsconfig path to `vite-plugin-checker`'s `typescript` option.
+     `vite-plugin-checker` v0.10.2 spawns `tsc` by joining `[bin, ...args]` with a plain
+     space and running it through a shell (`main.js`'s `spawnChecker`), with no quoting.
+     This repo lives under `~/Documents/AI Brain/Claude Universal/Projects/...` - a path
+     containing spaces - so the shell split the absolute `-p <path>` argument into multiple
+     tokens, and `tsc`'s CLI parser then saw a `-p` flag plus stray positional "source file"
+     arguments, triggering TS5042. Reproduced directly with a minimal
+     `child_process.spawn(cmd, {shell: true})` call using the exact joined command string.
+     **Fix**: gave the checker plugin a tsconfig path *relative* to the project root
+     (`./tsconfig.lib.json` / `./tsconfig.json`) instead of the `path.resolve(__dirname, ...)`
+     absolute one still used for `vite-plugin-dts` (safe there because `vite-plugin-dts`
+     resolves it internally via the TS API, not a shell). The checker always spawns with
+     `cwd` set to the project root by Nx, so the relative path resolves correctly. Since this
+     user's project root is permanently under a space-containing path, this would otherwise
+     bite every future worktree on this machine - worth the source fix. **Correction to an
+     earlier draft of this fix**: the first pass accidentally shipped with the `checker()`
+     plugin commented out entirely instead of just switching it to a relative path, which
+     silently disabled all TypeScript checking on `twenty-ui` builds. Caught in review;
+     re-fixed by uncommenting `checker(checkersConfig)` while keeping the relative-path
+     change, then re-verified both that a clean build still passes with the checker active
+     and that a deliberately-injected type error in `packages/twenty-ui/src/utilities/utils/isDefined.ts`
+     (added, confirmed the build fails with `TS2322` and exit code 2, then reverted) is
+     correctly caught.
+  2. **`twenty-shared:build` failed with 4 `TS2345` errors** in `resolveRelativeDateFilter.ts`,
+     `resolveRelativeDateFilterStringified.ts`, and `resolveRelativeDateTimeFilterStringified.ts`
+     - `number | null | undefined` / `string | null | undefined` not narrowed after an
+     `isDefined(...)` guard. Root cause: those three files imported `isDefined` from
+     `'class-validator'`, whose type is the untyped `isDefined(value: any): boolean` (no
+     type predicate). Every sibling file in the same `utils/filter/dates/utils/` directory
+     (`getPeriodStart.ts`, `resolveRelativeDateTimeFilter.ts`) instead imports the package's
+     own `isDefined` from `@/utils/validation`, typed `<T>(value: T | null | undefined) =>
+     value is NonNullable<T>` - a real type-narrowing guard. **Fix**: changed the import in
+     all three files to match the established convention already used next to them. No
+     behavior change - both implementations are functionally "not null and not undefined,"
+     only the type predicate differs.
+
+  After both fixes (and the review correction), `npx nx reset && npx nx run
+  twenty-front:typecheck` completes with `NX Successfully ran target typecheck` and zero
+  `Cannot find module` errors (down from ~14,600 lines), with the `vite-plugin-checker`
+  TypeScript checker verified live (not disabled) on `twenty-ui`. `npx tsc --noEmit -p
+  packages/twenty-front/tsconfig.json` also exits 0 independently. Full before/after logs,
+  the checker-catches-a-real-error verification, and commit hashes are in `task-0-report.md`
+  in `.superpowers/sdd/2026-08-08-appointment-setter-booking-page/` (gitignored, session-local).
+  **For the next fresh worktree bootstrap**: run `npx nx run-many -t build
+  --projects=twenty-shared,twenty-ui` before trusting any `twenty-front` typecheck/build/test
+  output. The space-in-path fix for `twenty-ui`'s checker plugin is already committed on this
+  branch, so a fresh worktree under the same `~/Documents/AI Brain/Claude Universal/Projects/`
+  root should just work; if `twenty-ui:build` throws TS5042 again, check for a
+  `vite-plugin-checker` version bump that changed `spawnChecker`'s quoting behavior.
