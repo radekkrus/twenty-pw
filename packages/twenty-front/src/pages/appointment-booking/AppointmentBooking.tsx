@@ -4,6 +4,7 @@ import { themeCssVariables } from 'twenty-ui/theme-constants';
 
 import { CloserStep } from '~/pages/appointment-booking/components/CloserStep';
 import { LeadStep } from '~/pages/appointment-booking/components/LeadStep';
+import { SlotStep } from '~/pages/appointment-booking/components/SlotStep';
 
 type PickedCompany = { id: string; name: string };
 type PickedCloser = {
@@ -54,7 +55,11 @@ export const AppointmentBooking = () => {
                   Zmień closer'a
                 </button>
               </p>
-              {/* Task 4 renders <SlotStep> here once both pickedCompany and pickedCloser are set */}
+              <SlotStep
+                closer={pickedCloser}
+                leadName={pickedCompany.name}
+                leadEmail={undefined}
+              />
             </div>
           )}
         </div>
