@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { useCreateOneRecord } from '@/object-record/hooks/useCreateOneRecord';
 import { useObjectRecordSearchRecords } from '@/object-record/hooks/useObjectRecordSearchRecords';
 
-type PickedCompany = { id: string; name: string };
+type PickedCompany = { id: string; name: string; email?: string };
 
 type LeadStepProps = {
   onPicked: (company: PickedCompany) => void;
@@ -15,6 +15,8 @@ export const LeadStep = ({ onPicked }: LeadStepProps) => {
   const [newName, setNewName] = useState('');
   const [newEmail, setNewEmail] = useState('');
   const [newPhone, setNewPhone] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const { searchRecords } = useObjectRecordSearchRecords({
     objectNameSingulars: ['company'],
@@ -27,17 +29,27 @@ export const LeadStep = ({ onPicked }: LeadStepProps) => {
   });
 
   const handleCreate = async () => {
-    const created = await createOneRecord({
-      name: newName,
-      leadEmails: { primaryEmail: newEmail },
-      // libphonenumber-js needs a country hint or a `+`-prefixed number to
-      // parse correctly - a bare local number (e.g. "123456789") can fail
-      // silently server-side. No validation here per Task 2 scope; Task 6
-      // revisits form polish.
-      leadPhones: { primaryPhoneNumber: newPhone },
-    });
+    if (submitting) return;
 
-    onPicked({ id: created.id, name: newName });
+    setSubmitting(true);
+    setSubmitError(null);
+
+    try {
+      const created = await createOneRecord({
+        name: newName,
+        leadEmails: { primaryEmail: newEmail },
+        // libphonenumber-js needs a country hint or a `+`-prefixed number to
+        // parse correctly - a bare local number (e.g. "123456789") can fail
+        // silently server-side. No validation here per Task 2 scope; Task 6
+        // revisits form polish.
+        leadPhones: { primaryPhoneNumber: newPhone },
+      });
+
+      onPicked({ id: created.id, name: newName, email: newEmail });
+    } catch {
+      setSubmitError('Nie udało się zapisać kliniki. Spróbuj ponownie.');
+      setSubmitting(false);
+    }
   };
 
   if (creating) {
@@ -64,9 +76,10 @@ export const LeadStep = ({ onPicked }: LeadStepProps) => {
             onChange={(event) => setNewPhone(event.target.value)}
           />
         </label>
-        <button type="button" onClick={handleCreate}>
-          Zapisz klinikę
+        <button type="button" onClick={handleCreate} disabled={submitting}>
+          {submitting ? 'Zapisywanie...' : 'Zapisz klinikę'}
         </button>
+        {submitError !== null ? <p>{submitError}</p> : null}
       </div>
     );
   }

@@ -1,9 +1,18 @@
 import { act, renderHook } from '@testing-library/react';
 
+type PwMeetingRecord = { id: string };
+
+// Models the real hook honestly: a query result never changes on its own between
+// renders - it only changes because `refetch` actually ran (a real network round
+// trip resolving with new data). Mutating `currentRecords` anywhere other than
+// inside `mockRefetch`'s implementation would reintroduce the bug this test suite
+// exists to catch: a test that passes even when the poll loop never refetches.
+let currentRecords: PwMeetingRecord[] = [];
 const mockRefetch = jest.fn();
+const mockUseFindManyRecords = jest.fn();
 
 jest.mock('@/object-record/hooks/useFindManyRecords', () => ({
-  useFindManyRecords: () => ({ records: mockRefetch(), refetch: jest.fn(), loading: false }),
+  useFindManyRecords: (params: unknown) => mockUseFindManyRecords(params),
 }));
 
 import { useAwaitBookingConfirmation } from '~/pages/appointment-booking/hooks/useAwaitBookingConfirmation';
@@ -15,40 +24,84 @@ const POLL_INTERVAL_MS = 5000;
 describe('useAwaitBookingConfirmation', () => {
   beforeEach(() => {
     jest.useFakeTimers();
+    currentRecords = [];
     mockRefetch.mockReset();
+    mockUseFindManyRecords.mockReset();
+    mockUseFindManyRecords.mockImplementation(() => ({
+      records: currentRecords,
+      refetch: mockRefetch,
+      loading: false,
+    }));
   });
 
   afterEach(() => {
     jest.useRealTimers();
   });
 
-  it('stays idle when not armed', () => {
-    mockRefetch.mockReturnValue([]);
+  it('stays idle when not armed and never queries', () => {
     const { result } = renderHook(() =>
       useAwaitBookingConfirmation({ companyId: 'company-1', armed: false }),
     );
 
     expect(result.current.status).toBe('idle');
+    expect(mockRefetch).not.toHaveBeenCalled();
   });
 
-  it('moves to found once a pwMeeting row appears for the company', () => {
-    mockRefetch.mockReturnValue([]);
-    const { result, rerender } = renderHook(
-      ({ armed }) =>
-        useAwaitBookingConfirmation({ companyId: 'company-1', armed }),
-      { initialProps: { armed: true } },
+  it('scopes the query to the company AND to rows created after arming, so an old booking never counts', () => {
+    renderHook(() =>
+      useAwaitBookingConfirmation({ companyId: 'company-1', armed: true }),
+    );
+
+    const lastCallParams = mockUseFindManyRecords.mock.calls.at(-1)?.[0] as {
+      objectNameSingular: string;
+      filter: unknown;
+    };
+
+    expect(lastCallParams.objectNameSingular).toBe('pwMeeting');
+    expect(lastCallParams.filter).toEqual({
+      and: [
+        { companyId: { eq: 'company-1' } },
+        { createdAt: { gt: expect.any(String) } },
+      ],
+    });
+  });
+
+  it('actually calls refetch on each poll instead of re-reading a stale query result', () => {
+    renderHook(() =>
+      useAwaitBookingConfirmation({ companyId: 'company-1', armed: true }),
+    );
+
+    expect(mockRefetch).not.toHaveBeenCalled();
+
+    act(() => {
+      jest.advanceTimersByTime(POLL_INTERVAL_MS);
+    });
+
+    expect(mockRefetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('moves to found once a poll refetch turns up a pwMeeting row for the company', () => {
+    // The only place `currentRecords` is allowed to change - simulating a real refetch
+    // resolving with a freshly-created row.
+    mockRefetch.mockImplementation(() => {
+      currentRecords = [{ id: 'meeting-1' }];
+    });
+
+    const { result } = renderHook(() =>
+      useAwaitBookingConfirmation({ companyId: 'company-1', armed: true }),
     );
 
     expect(result.current.status).toBe('waiting');
 
-    mockRefetch.mockReturnValue([{ id: 'meeting-1' }]);
-    rerender({ armed: true });
+    act(() => {
+      jest.advanceTimersByTime(POLL_INTERVAL_MS);
+    });
 
+    expect(mockRefetch).toHaveBeenCalledTimes(1);
     expect(result.current.status).toBe('found');
   });
 
-  it('keeps waiting while the poll budget has attempts left', () => {
-    mockRefetch.mockReturnValue([]);
+  it('keeps waiting while the poll budget has attempts left, refetching on every attempt', () => {
     const { result } = renderHook(() =>
       useAwaitBookingConfirmation({ companyId: 'company-1', armed: true }),
     );
@@ -65,10 +118,10 @@ describe('useAwaitBookingConfirmation', () => {
     }
 
     expect(result.current.status).toBe('waiting');
+    expect(mockRefetch).toHaveBeenCalledTimes(MAX_POLLS - 1);
   });
 
   it('gives up and reports timedOut once the poll budget is exhausted with no row found', () => {
-    mockRefetch.mockReturnValue([]);
     const { result } = renderHook(() =>
       useAwaitBookingConfirmation({ companyId: 'company-1', armed: true }),
     );
@@ -80,5 +133,6 @@ describe('useAwaitBookingConfirmation', () => {
     }
 
     expect(result.current.status).toBe('timedOut');
+    expect(mockRefetch).toHaveBeenCalledTimes(MAX_POLLS);
   });
 });

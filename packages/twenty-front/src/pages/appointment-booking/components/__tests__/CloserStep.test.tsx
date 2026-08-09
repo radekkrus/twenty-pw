@@ -3,12 +3,20 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { CloserStep } from '~/pages/appointment-booking/components/CloserStep';
 
 const mockRecords = jest.fn();
+const mockLoading = jest.fn();
 
 jest.mock('@/object-record/hooks/useFindManyRecords', () => ({
-  useFindManyRecords: () => ({ records: mockRecords(), loading: false }),
+  useFindManyRecords: () => ({
+    records: mockRecords(),
+    loading: mockLoading(),
+  }),
 }));
 
 describe('CloserStep', () => {
+  beforeEach(() => {
+    mockLoading.mockReturnValue(false);
+  });
+
   it('lists active closers and calls onPicked with the chosen one', () => {
     mockRecords.mockReturnValue([
       { id: 'closer-1', name: 'Kasia Wrzesień', calcomEventSlug: 'kasia-wrzesien/30min', active: true, __typename: 'mtgCloser' },
@@ -34,5 +42,30 @@ describe('CloserStep', () => {
     render(<CloserStep onPicked={jest.fn()} />);
 
     expect(screen.queryByText('Nieskonfigurowany')).not.toBeInTheDocument();
+  });
+
+  it('shows an honest empty-state message when the roster finished loading with zero bookable closers', () => {
+    mockRecords.mockReturnValue([]);
+
+    render(<CloserStep onPicked={jest.fn()} />);
+
+    expect(
+      screen.getByText(
+        'Żaden closer nie ma jeszcze skonfigurowanego kalendarza Cal.com. Skontaktuj się z administratorem.',
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it('does not show the empty-state message while the roster is still loading', () => {
+    mockRecords.mockReturnValue([]);
+    mockLoading.mockReturnValue(true);
+
+    render(<CloserStep onPicked={jest.fn()} />);
+
+    expect(
+      screen.queryByText(
+        'Żaden closer nie ma jeszcze skonfigurowanego kalendarza Cal.com. Skontaktuj się z administratorem.',
+      ),
+    ).not.toBeInTheDocument();
   });
 });

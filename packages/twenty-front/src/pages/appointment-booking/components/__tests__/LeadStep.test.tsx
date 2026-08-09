@@ -74,6 +74,7 @@ describe('LeadStep', () => {
       expect(onPicked).toHaveBeenCalledWith({
         id: 'company-new',
         name: 'Nowa Klinika',
+        email: 'kontakt@nowaklinika.pl',
       }),
     );
     expect(mockCreateOneRecord).toHaveBeenCalledWith({
@@ -81,5 +82,52 @@ describe('LeadStep', () => {
       leadEmails: { primaryEmail: 'kontakt@nowaklinika.pl' },
       leadPhones: { primaryPhoneNumber: '+48123456789' },
     });
+  });
+
+  it('shows an error and re-enables the button when creation fails, without calling onPicked', async () => {
+    mockSearchRecords.mockReturnValue([]);
+    mockCreateOneRecord.mockRejectedValue(new Error('network down'));
+    const onPicked = jest.fn();
+
+    render(<LeadStep onPicked={onPicked} />);
+    fireEvent.click(screen.getByText('Nowa klinika'));
+    fireEvent.change(screen.getByLabelText('Nazwa'), {
+      target: { value: 'Nowa Klinika' },
+    });
+    fireEvent.click(screen.getByText('Zapisz klinikę'));
+
+    await waitFor(() =>
+      expect(
+        screen.getByText('Nie udało się zapisać kliniki. Spróbuj ponownie.'),
+      ).toBeInTheDocument(),
+    );
+    expect(onPicked).not.toHaveBeenCalled();
+    expect(screen.getByText('Zapisz klinikę')).not.toBeDisabled();
+  });
+
+  it('disables the submit button and guards against double submission while a request is in flight', async () => {
+    mockSearchRecords.mockReturnValue([]);
+    let resolveCreate: (value: { id: string; name: string }) => void;
+    mockCreateOneRecord.mockReturnValue(
+      new Promise((resolve) => {
+        resolveCreate = resolve;
+      }),
+    );
+    const onPicked = jest.fn();
+
+    render(<LeadStep onPicked={onPicked} />);
+    fireEvent.click(screen.getByText('Nowa klinika'));
+    fireEvent.change(screen.getByLabelText('Nazwa'), {
+      target: { value: 'Nowa Klinika' },
+    });
+
+    fireEvent.click(screen.getByText('Zapisz klinikę'));
+    fireEvent.click(screen.getByText('Zapisywanie...'));
+
+    expect(screen.getByText('Zapisywanie...')).toBeDisabled();
+    expect(mockCreateOneRecord).toHaveBeenCalledTimes(1);
+
+    resolveCreate!({ id: 'company-new', name: 'Nowa Klinika' });
+    await waitFor(() => expect(onPicked).toHaveBeenCalledTimes(1));
   });
 });

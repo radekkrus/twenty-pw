@@ -15,7 +15,7 @@ type CloserStepProps = {
 };
 
 export const CloserStep = ({ onPicked }: CloserStepProps) => {
-  const { records } = useFindManyRecords<CloserRecord>({
+  const { records, loading } = useFindManyRecords<CloserRecord>({
     objectNameSingular: 'mtgCloser',
     filter: { active: { eq: true } },
   });
@@ -24,6 +24,15 @@ export const CloserStep = ({ onPicked }: CloserStepProps) => {
     (closer): closer is CloserRecord & { calcomEventSlug: string } =>
       Boolean(closer.calcomEventSlug),
   );
+
+  if (!loading && bookable.length === 0) {
+    return (
+      <div>
+        Żaden closer nie ma jeszcze skonfigurowanego kalendarza Cal.com.
+        Skontaktuj się z administratorem.
+      </div>
+    );
+  }
 
   return (
     <div>

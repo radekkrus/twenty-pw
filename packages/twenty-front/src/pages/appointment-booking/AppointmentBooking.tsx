@@ -6,7 +6,7 @@ import { CloserStep } from '~/pages/appointment-booking/components/CloserStep';
 import { LeadStep } from '~/pages/appointment-booking/components/LeadStep';
 import { SlotStep } from '~/pages/appointment-booking/components/SlotStep';
 
-type PickedCompany = { id: string; name: string };
+type PickedCompany = { id: string; name: string; email?: string };
 type PickedCloser = {
   id: string;
   name: string;
@@ -58,7 +58,7 @@ export const AppointmentBooking = () => {
               <SlotStep
                 closer={pickedCloser}
                 leadName={pickedCompany.name}
-                leadEmail={undefined}
+                leadEmail={pickedCompany.email}
                 companyId={pickedCompany.id}
               />
             </div>
