@@ -59,6 +59,7 @@ export const AppointmentBooking = () => {
                 closer={pickedCloser}
                 leadName={pickedCompany.name}
                 leadEmail={undefined}
+                companyId={pickedCompany.id}
               />
             </div>
           )}
