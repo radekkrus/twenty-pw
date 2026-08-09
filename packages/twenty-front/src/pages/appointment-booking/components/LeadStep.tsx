@@ -30,6 +30,10 @@ export const LeadStep = ({ onPicked }: LeadStepProps) => {
     const created = await createOneRecord({
       name: newName,
       leadEmails: { primaryEmail: newEmail },
+      // libphonenumber-js needs a country hint or a `+`-prefixed number to
+      // parse correctly - a bare local number (e.g. "123456789") can fail
+      // silently server-side. No validation here per Task 2 scope; Task 6
+      // revisits form polish.
       leadPhones: { primaryPhoneNumber: newPhone },
     });
 
@@ -74,13 +78,15 @@ export const LeadStep = ({ onPicked }: LeadStepProps) => {
         value={query}
         onChange={(event) => setQuery(event.target.value)}
       />
-      {(searchRecords as unknown as { record: PickedCompany }[] | undefined)?.map((result) => (
+      {searchRecords?.map((result) => (
         <button
-          key={result.record.id}
+          key={result.recordId}
           type="button"
-          onClick={() => onPicked(result.record)}
+          onClick={() =>
+            onPicked({ id: result.recordId, name: result.label })
+          }
         >
-          {result.record.name}
+          {result.label}
         </button>
       ))}
       <button type="button" onClick={() => setCreating(true)}>

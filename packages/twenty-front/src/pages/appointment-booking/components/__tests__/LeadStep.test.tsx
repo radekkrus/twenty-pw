@@ -23,7 +23,14 @@ describe('LeadStep', () => {
 
   it('calls onPicked with a search result when clicked', () => {
     mockSearchRecords.mockReturnValue([
-      { record: { id: 'company-1', name: 'Klinika Uroda' } },
+      {
+        recordId: 'company-1',
+        label: 'Klinika Uroda',
+        objectNameSingular: 'company',
+        objectLabelSingular: 'Company',
+        tsRank: 0,
+        tsRankCD: 0,
+      },
     ]);
     const onPicked = jest.fn();
 
