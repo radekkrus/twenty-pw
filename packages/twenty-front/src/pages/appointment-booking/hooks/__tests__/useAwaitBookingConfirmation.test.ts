@@ -18,7 +18,7 @@ jest.mock('@/object-record/hooks/useFindManyRecords', () => ({
 import { useAwaitBookingConfirmation } from '~/pages/appointment-booking/hooks/useAwaitBookingConfirmation';
 
 // Mirrors the hook's own MAX_POLLS/POLL_INTERVAL_MS constants (not exported, so pinned here).
-const MAX_POLLS = 8;
+const MAX_POLLS = 15;
 const POLL_INTERVAL_MS = 5000;
 
 describe('useAwaitBookingConfirmation', () => {

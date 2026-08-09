@@ -4,9 +4,10 @@ import { useFindManyRecords } from '@/object-record/hooks/useFindManyRecords';
 
 type BookingConfirmationStatus = 'idle' | 'waiting' | 'found' | 'timedOut';
 
-/** Bridge cron runs every 60s - a few retries at a few seconds apart covers it without
- * making the setter stare at a spinner for a full minute on the common case. */
-const MAX_POLLS = 8;
+/** Bridge cron runs every 60s. Poll for 75s total (15 attempts at 5s intervals) to ensure
+ * a booking whose sync lands near the end of a cron cycle still gets caught on retry,
+ * without forcing the setter to stare at a spinner longer than necessary. */
+const MAX_POLLS = 15;
 const POLL_INTERVAL_MS = 5000;
 
 export const useAwaitBookingConfirmation = ({
@@ -26,11 +27,14 @@ export const useAwaitBookingConfirmation = ({
   // no extra render/flicker.
   const [wasArmed, setWasArmed] = useState(armed);
   const [armedAt, setArmedAt] = useState<string | null>(
-    armed ? new Date().toISOString() : null,
+    // Backdate by 60s to guard against client/server clock skew: if the setter's
+    // browser is ahead of the server, a real booking created right after this moment
+    // could still land inside the 60s window and not be filtered out.
+    armed ? new Date(Date.now() - 60000).toISOString() : null,
   );
   if (armed !== wasArmed) {
     setWasArmed(armed);
-    setArmedAt(armed ? new Date().toISOString() : null);
+    setArmedAt(armed ? new Date(Date.now() - 60000).toISOString() : null);
   }
 
   const { records, refetch } = useFindManyRecords<{
