@@ -3,13 +3,13 @@
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** A new in-app page at `/appointment-booking` where a setter picks/creates a lead,
-picks a closer, and books a real slot on that closer's Cal.com calendar — reachable from a
+picks a closer, and books a real slot on that closer's Cal.com calendar - reachable from a
 native global entry point on every page, not buried in one module.
 
 **Architecture:** A plain page component (shaped like the existing `BookCall.tsx`, not the
 generic record-table/page-layout machinery), registered in the same authenticated route
 group as `PageLayoutPage`. Reads/writes `company` and `mtgCloser` through Twenty's own
-generic object-record hooks — no new backend code. The booking write path is Cal.com
+generic object-record hooks - no new backend code. The booking write path is Cal.com
 itself (via `@calcom/embed-react`, already a dependency) → the existing
 `pw-crm-booking-bridge.py` → `pwMeeting`, unchanged. Global entry: a seeded
 `commandMenuItem` row (`GLOBAL` availability, `NAVIGATION` payload) plus one static item in
@@ -22,30 +22,30 @@ seed.
 
 ## Global Constraints
 
-- Field name `calcomEventSlug` on `mtgCloser` — must match exactly what the companion plan
+- Field name `calcomEventSlug` on `mtgCloser` - must match exactly what the companion plan
   (`partner-wzrostu-crm-setter-booking`, Task 1) creates. Confirm that plan's Task 1 has
-  shipped (field exists on prod) before this plan's Task 3 depends on it for real data —
+  shipped (field exists on prod) before this plan's Task 3 depends on it for real data -
   Task 3's own test can still run against a mock either way.
 - No new backend route/controller. Every read/write in this plan goes through generic,
-  already-existing object-record hooks or the Cal.com embed — if a task seems to need a
+  already-existing object-record hooks or the Cal.com embed - if a task seems to need a
   new NestJS endpoint, stop and re-check against the design spec before writing one; that
   would be a scope signal the spec didn't anticipate.
 - Work in the dedicated worktree at
   `Projects/twenty-pw/twenty-pw-appointment-booking` (branch `feat/appointment-booking`,
-  already created, already has one commit — `DeployStatusBar` — from a prior side-task in
+  already created, already has one commit - `DeployStatusBar` - from a prior side-task in
   this session). Note the nesting: it's a worktree *inside* the primary `twenty-pw`
-  checkout's directory, not a sibling — a mistake made once already this session when
+  checkout's directory, not a sibling - a mistake made once already this session when
   creating it; don't "fix" the path by moving it, `git worktree` already knows where it
   is. Do not work in the shared primary `twenty-pw` checkout itself.
 - **Confirmed pre-existing, repo-wide, and not this plan's problem to fix in-line**: a bare
   `tsc --noEmit -p packages/twenty-front/tsconfig.json` fails with ~14,600 lines of
   `Cannot find module 'twenty-shared/...'`/`'twenty-ui/...'` errors on a fresh checkout,
-  identical on the primary checkout and this worktree alike — `twenty-shared`/`twenty-ui`
+  identical on the primary checkout and this worktree alike - `twenty-shared`/`twenty-ui`
   need to be built first, normally via Nx, but `nx show projects` currently returns `[]`
   (broken project graph, cause unknown). Task 0 below fixes this once, so every later
   task's build/test steps actually mean something instead of drowning in unrelated noise.
 - Before pushing/deploying: this fork's CI (`.github/workflows/build-image.yml`) builds and
-  pushes a new image on every push to `main` — do not push to `main` directly mid-plan.
+  pushes a new image on every push to `main` - do not push to `main` directly mid-plan.
   Merge to `main` only once this whole plan is done and verified per Task 7.
 - Copy: Polish user-facing strings (this is a Polish-market CRM), same as everywhere else
   in this fork's Partner Wzrostu-specific pages. Code/comments in English.
@@ -54,7 +54,7 @@ seed.
 
 ### Task 0: Fix the fork's build bootstrap
 
-**Files:** none expected (environment/tooling fix — if it turns out a real source file
+**Files:** none expected (environment/tooling fix - if it turns out a real source file
 needs to change, that's new information this task should surface, not something to
 route around).
 
@@ -66,18 +66,18 @@ route around).
 
 - [ ] **Step 1: Diagnose why Nx sees no projects**
 
-Run: `npx nx show projects` (from `packages/twenty-front` and from repo root — try both,
+Run: `npx nx show projects` (from `packages/twenty-front` and from repo root - try both,
 Nx's project discovery is workspace-root-relative and the wrong cwd is a common cause of
 an empty list). If both are empty, check `nx.json` and `packages/twenty-front/project.json`
 (or `package.json`'s `nx` key, depending on how this version of Nx declares projects) exist
-and are well-formed, and try `npx nx reset` (clears the Nx daemon/cache — safe, no data
+and are well-formed, and try `npx nx reset` (clears the Nx daemon/cache - safe, no data
 loss) followed by a retry.
 
 - [ ] **Step 2: Build the shared packages**
 
 Once Nx sees the projects, run whatever target actually builds `twenty-shared` and
 `twenty-ui` (likely `npx nx run twenty-shared:build` and `npx nx run twenty-ui:build`, or
-a combined `npx nx run-many -t build --projects=twenty-shared,twenty-ui` — check
+a combined `npx nx run-many -t build --projects=twenty-shared,twenty-ui` - check
 `packages/twenty-shared/package.json` and `packages/twenty-ui/package.json` for the
 project's actual target names first rather than guessing).
 
@@ -86,13 +86,13 @@ project's actual target names first rather than guessing).
 Run: `npx nx run twenty-front:typecheck` (or `npx tsc --noEmit -p packages/twenty-front/tsconfig.json`
 if no typecheck target exists). Expected: the `Cannot find module 'twenty-shared/...'`
 class of error is gone. Any *remaining* errors at this point are real and should be read,
-not dismissed — this task's job is removing the noise, not guaranteeing zero errors from
+not dismissed - this task's job is removing the noise, not guaranteeing zero errors from
 whatever's already on this branch.
 
 - [ ] **Step 4: Document what fixed it**
 
 If this needed anything beyond "build the two packages" (a config fix, a missing env var,
-an Nx version mismatch) — write one paragraph in this plan file's own "Self-review notes"
+an Nx version mismatch) - write one paragraph in this plan file's own "Self-review notes"
 section (append, don't rewrite) explaining what was actually wrong, so the next person
 bootstrapping a fresh `twenty-pw` worktree doesn't repeat this investigation from scratch.
 
@@ -104,7 +104,7 @@ git status  # confirm only intended files are staged before committing
 git commit -m "chore(build): fix Nx project graph / bootstrap shared package builds"
 ```
 
-If nothing tracked changed (purely a local build-artifact/cache fix), skip this step —
+If nothing tracked changed (purely a local build-artifact/cache fix), skip this step -
 say so explicitly rather than committing an empty commit.
 
 ---
@@ -122,7 +122,7 @@ say so explicitly rather than committing an empty commit.
 - Produces: `AppPath.AppointmentBooking` (string `'/appointment-booking'`), and the
   `AppointmentBooking` component (default export shape: named export
   `export const AppointmentBooking = () => ...`), which Tasks 2-5 add content to. Later
-  tasks import and extend this same component — they do not create a new one.
+  tasks import and extend this same component - they do not create a new one.
 
 - [ ] **Step 1: Add the route constant**
 
@@ -157,7 +157,7 @@ describe('AppointmentBooking', () => {
 - [ ] **Step 3: Run test to verify it fails**
 
 Run: `npx jest packages/twenty-front/src/pages/appointment-booking --config packages/twenty-front/jest.config.mjs`
-Expected: FAIL — `Cannot find module '~/pages/appointment-booking/AppointmentBooking'`.
+Expected: FAIL - `Cannot find module '~/pages/appointment-booking/AppointmentBooking'`.
 
 - [ ] **Step 4: Write the minimal page component**
 
@@ -202,7 +202,7 @@ const AppointmentBooking = lazy(() =>
 ```
 
 Add the route as a sibling of `PageLayoutPage`'s route (around line 179-186, same
-authenticated group — NOT the `AuthFlowLayout` group `BookCall` uses, that's
+authenticated group - NOT the `AuthFlowLayout` group `BookCall` uses, that's
 onboarding-only and has no sidebar):
 
 ```tsx
@@ -218,9 +218,9 @@ onboarding-only and has no sidebar):
 
 - [ ] **Step 7: Manual smoke check**
 
-This step has no automated test — routing wiring is confirmed in Task 7's end-to-end pass.
+This step has no automated test - routing wiring is confirmed in Task 7's end-to-end pass.
 For now, confirm `yarn nx run twenty-front:build` (or the workspace's equivalent build
-command — check `package.json` at repo root if `nx` isn't directly invokable) completes
+command - check `package.json` at repo root if `nx` isn't directly invokable) completes
 without a new TypeScript error introduced by this task.
 
 - [ ] **Step 8: Commit**
@@ -234,7 +234,7 @@ git commit -m "feat(appointment-booking): route + empty page shell"
 
 ---
 
-### Task 2: Lead step — search existing company, create a new one
+### Task 2: Lead step - search existing company, create a new one
 
 **Files:**
 - Create: `packages/twenty-front/src/pages/appointment-booking/components/LeadStep.tsx`
@@ -322,7 +322,7 @@ describe('LeadStep', () => {
 - [ ] **Step 2: Run test to verify it fails**
 
 Run: `npx jest LeadStep --config packages/twenty-front/jest.config.mjs`
-Expected: FAIL — module not found.
+Expected: FAIL - module not found.
 
 - [ ] **Step 3: Write the minimal implementation**
 
@@ -410,7 +410,7 @@ export const LeadStep = ({ onPicked }: LeadStepProps) => {
 ```
 
 **Note for the implementer:** this is the minimal shape to pass the test, not the final
-visual design — Task 6 (usability pass, see below) revisits styling, loading/empty states,
+visual design - Task 6 (usability pass, see below) revisits styling, loading/empty states,
 and debounce on the search input before this ships. Don't polish ahead of that task; keep
 this focused on the data flow being correct.
 
@@ -434,7 +434,7 @@ git commit -m "feat(appointment-booking): lead step - search or create a company
 
 ---
 
-### Task 3: Closer step — list the roster
+### Task 3: Closer step - list the roster
 
 **Files:**
 - Create: `packages/twenty-front/src/pages/appointment-booking/components/CloserStep.tsx`
@@ -442,7 +442,7 @@ git commit -m "feat(appointment-booking): lead step - search or create a company
 - Test: `packages/twenty-front/src/pages/appointment-booking/components/__tests__/CloserStep.test.tsx`
 
 **Interfaces:**
-- Consumes: nothing from Task 2 directly (parallel data need — this step doesn't care
+- Consumes: nothing from Task 2 directly (parallel data need - this step doesn't care
   which company was picked).
 - Produces: `CloserStep` component, props
   `{ onPicked: (closer: {id: string; name: string; calcomEventSlug: string}) => void }`.
@@ -494,7 +494,7 @@ describe('CloserStep', () => {
 - [ ] **Step 2: Run test to verify it fails**
 
 Run: `npx jest CloserStep --config packages/twenty-front/jest.config.mjs`
-Expected: FAIL — module not found.
+Expected: FAIL - module not found.
 
 - [ ] **Step 3: Write the minimal implementation**
 
@@ -531,7 +531,7 @@ export const CloserStep = ({ onPicked }: CloserStepProps) => {
 ```
 
 **Note for the implementer:** a closer with no `calcomEventSlug` yet is filtered out rather
-than shown disabled — per the design spec, onboarding a closer (Task 2 of the companion
+than shown disabled - per the design spec, onboarding a closer (Task 2 of the companion
 plan) is a real prerequisite, not a config toggle, so surfacing an unbookable name here
 would just be a dead end for the setter. If product feedback later wants "show them
 greyed out with a reason," that's a follow-up, not part of this plan.
@@ -556,7 +556,7 @@ git commit -m "feat(appointment-booking): closer step - bookable roster"
 
 ---
 
-### Task 4: Slot step — Cal.com embed, prefilled
+### Task 4: Slot step - Cal.com embed, prefilled
 
 **Files:**
 - Create: `packages/twenty-front/src/pages/appointment-booking/components/SlotStep.tsx`
@@ -566,12 +566,12 @@ git commit -m "feat(appointment-booking): closer step - bookable roster"
 **Interfaces:**
 - Consumes: `pickedCompany: {id, name}` (Task 2), `pickedCloser: {id, name,
   calcomEventSlug}` (Task 3), plus a `leadEmail`/`leadPhone` pair captured in Task 2's
-  create-new-company path (for prefill when available — search-picked existing companies
+  create-new-company path (for prefill when available - search-picked existing companies
   may not have those captured at this step; that's fine, `@calcom/embed-react`'s `config`
   fields are optional).
 - Produces: `SlotStep` component, props
   `{ closer: {name: string; calcomEventSlug: string}; leadName: string; leadEmail?: string
-  }`, rendering the `<Cal>` embed. No `onBooked` callback in this task — Task 5 adds
+  }`, rendering the `<Cal>` embed. No `onBooked` callback in this task - Task 5 adds
   booking-completion detection as its own concern (Cal's embed exposes a
   `bookingSuccessful` event via `getCalApi().on(...)`, wired up there, not here, to keep
   this task's test surface small).
@@ -617,7 +617,7 @@ describe('SlotStep', () => {
 - [ ] **Step 2: Run test to verify it fails**
 
 Run: `npx jest SlotStep --config packages/twenty-front/jest.config.mjs`
-Expected: FAIL — module not found.
+Expected: FAIL - module not found.
 
 - [ ] **Step 3: Write the minimal implementation**
 
@@ -661,7 +661,7 @@ git commit -m "feat(appointment-booking): slot step - Cal.com embed, prefilled"
 
 ---
 
-### Task 5: Booking confirmation — poll for the `pwMeeting` row
+### Task 5: Booking confirmation - poll for the `pwMeeting` row
 
 **Files:**
 - Create: `packages/twenty-front/src/pages/appointment-booking/hooks/useAwaitBookingConfirmation.ts`
@@ -729,7 +729,7 @@ describe('useAwaitBookingConfirmation', () => {
 - [ ] **Step 2: Run test to verify it fails**
 
 Run: `npx jest useAwaitBookingConfirmation --config packages/twenty-front/jest.config.mjs`
-Expected: FAIL — module not found.
+Expected: FAIL - module not found.
 
 - [ ] **Step 3: Write the minimal implementation**
 
@@ -833,7 +833,7 @@ Update `AppointmentBooking.tsx` to pass `companyId={pickedCompany.id}` through.
 
 **Note for the implementer:** `getCalApi`'s exact async/callback signature should be
 confirmed against the installed `@calcom/embed-react` version's types
-(`node_modules/@calcom/embed-react/dist/index.d.ts`) before this step — the shape above is
+(`node_modules/@calcom/embed-react/dist/index.d.ts`) before this step - the shape above is
 correct for the version pinned when this plan was written, but pin-and-verify rather than
 assume it hasn't moved.
 
@@ -846,33 +846,33 @@ git commit -m "feat(appointment-booking): poll pwMeeting after a Cal.com booking
 
 ---
 
-### Task 6: Global entry point — command-menu item + drawer quick-action
+### Task 6: Global entry point - command-menu item + drawer quick-action
 
 **Files:**
 - Create: `packages/twenty-server/src/database/commands/upgrade-version-command/2-26/2-26-workspace-command-<next-timestamp>-add-appointment-booking-command-menu-item.command.ts`
   (pick the next unused millisecond timestamp in that folder, following the existing
-  filename convention — do not reuse `1775500001000`, that's the compose-email one)
+  filename convention - do not reuse `1775500001000`, that's the compose-email one)
 - Modify: `packages/twenty-server/src/database/commands/upgrade-version-command/2-26/2-26-upgrade-version-command.module.ts`
   (add the new command to `providers`)
 - Modify: `packages/twenty-front/src/modules/navigation/components/MainNavigationDrawerScrollableItems.tsx`
 - Test: manual (workspace-command tests are integration-level against a real DB in this
-  codebase's existing convention — check for a `1-21` sibling test file as precedent
+  codebase's existing convention - check for a `1-21` sibling test file as precedent
   before deciding whether to add one here; if none of the existing
   `*-command-menu-item.command.ts` files have a dedicated unit test, don't invent a new
   testing pattern for this one, match the codebase)
 
 **Interfaces:**
 - Consumes: `AppPath.AppointmentBooking` (Task 1).
-- Produces: nothing further tasks depend on — this is the last task before end-to-end
+- Produces: nothing further tasks depend on - this is the last task before end-to-end
   verification.
 
 - [ ] **Step 1: Confirm the exact `commandMenuItem` row shape before writing the command**
 
 Read `packages/twenty-server/src/engine/workspace-manager/twenty-standard-application/constants/standard-command-menu-item.constant.ts`
-in full — the existing compose-email command (researched for this plan) pulls its row
+in full - the existing compose-email command (researched for this plan) pulls its row
 from this constant rather than building one inline, and this plan's implementer needs the
 exact same shape (required fields, how `payload` is typed for a `NAVIGATION` item) before
-writing a new entry. This file was not read in full during design research — reading it is
+writing a new entry. This file was not read in full during design research - reading it is
 the first real step of this task, not optional prep.
 
 - [ ] **Step 2: Add the new command-menu item to the standard-items constant**
@@ -893,7 +893,7 @@ structure exactly (constructor injection, `runOnWorkspace`, the
 - `COMPOSE_EMAIL_UNIVERSAL_IDENTIFIER` → the new item's universal identifier from Step 2
 - the log message strings
 
-Do not invent a different structure — this file's whole point is being boringly identical
+Do not invent a different structure - this file's whole point is being boringly identical
 to the proven pattern.
 
 - [ ] **Step 4: Register it**
@@ -904,7 +904,7 @@ Add the new command class to the `providers` array in
 - [ ] **Step 5: Add the drawer quick-action**
 
 In `MainNavigationDrawerScrollableItems.tsx`, add a new small component (or inline, if the
-codebase's own style in that file favors inline JSX for single-purpose additions — match
+codebase's own style in that file favors inline JSX for single-purpose additions - match
 what's already there) rendering a link/button to `AppPath.AppointmentBooking`, labeled
 "+ Nowe spotkanie", placed as a sibling of `<NavigationDrawerOpenedSection />` (not inside
 the `Suspense`-wrapped dispatchers below it, per the research: that section is not
@@ -912,7 +912,7 @@ lazy-loaded, keeping this quick-action visible immediately on paint).
 
 - [ ] **Step 6: Manual verification**
 
-Run the new upgrade command against a workspace (staging, not prod — see Task 7), confirm
+Run the new upgrade command against a workspace (staging, not prod - see Task 7), confirm
 the "Nowe spotkanie" item appears in Cmd+K and navigates correctly, and confirm the drawer
 button is visible and navigates correctly on every page (not just `/`).
 
@@ -931,13 +931,13 @@ git commit -m "feat(appointment-booking): global entry point - command menu + dr
 
 **Files:** none (verification only)
 
-**Interfaces:** N/A — this task consumes everything built so far and produces a
+**Interfaces:** N/A - this task consumes everything built so far and produces a
 merged, deployed feature.
 
 - [ ] **Step 1: Confirm the companion plan has shipped**
 
 `partner-wzrostu-crm-setter-booking`'s plan (Task 1: `calcomEventSlug` field on prod,
-Task 2: at least one real closer onboarded) must be done — this task needs a real
+Task 2: at least one real closer onboarded) must be done - this task needs a real
 `calcomEventSlug` value to book against.
 
 - [ ] **Step 2: Full local run**
@@ -945,14 +945,14 @@ Task 2: at least one real closer onboarded) must be done — this task needs a r
 From the repo root: run the full `twenty-front` test suite (not just this feature's new
 tests) to catch any regression: `npx jest --config packages/twenty-front/jest.config.mjs`.
 Expected: no new failures versus a run on `main` before this branch's changes (a
-pre-existing failure unrelated to this work is out of scope — confirm by running the same
+pre-existing failure unrelated to this work is out of scope - confirm by running the same
 command on `main` first if anything fails, per this operator's standing rule about
 flagging pre-existing vs introduced issues).
 
 - [ ] **Step 3: Staging rehearsal**
 
 Per `partner-wzrostu-crm/infra/twenty-staging/` (spin up against a restored prod dump,
-`docker compose up`, no worker, `DISABLE_CRON_JOBS_REGISTRATION=true`) — build this
+`docker compose up`, no worker, `DISABLE_CRON_JOBS_REGISTRATION=true`) - build this
 branch's image locally or via a throwaway Actions run, point staging at it, and manually
 walk the full flow: open the drawer quick-action from a page that isn't Meetings (proves
 the "every page" requirement), pick/create a lead, pick the test closer from the companion
@@ -962,19 +962,19 @@ transition happens, and confirm a `pwMeeting` row exists for it in staging's DB.
 - [ ] **Step 4: Merge to `main`**
 
 Only after Step 3 passes clean. This triggers the fork's build-image workflow
-automatically (push to `main`) — do not also manually trigger a duplicate build.
+automatically (push to `main`) - do not also manually trigger a duplicate build.
 
 - [ ] **Step 5: Deploy to production**
 
 Follow the tag-flip procedure in `partner-wzrostu-crm/docs/superpowers/specs/2026-08-08-twenty-fork-design.md`
 (pull the new image, `docker compose up -d server`, confirm `/healthz` 200 and
-`docker inspect` health before considering it live) — under this repo's deploy-lock
+`docker inspect` health before considering it live) - under this repo's deploy-lock
 discipline if another session might be touching the same box concurrently.
 
 - [ ] **Step 6: Update `DEPLOY_STAMP` in `DeployStatusBar.tsx`**
 
 Set it to the real deploy time (Warsaw), per the convention this session already
-established for the Meetings module's own stamp. Commit and include in the same deploy —
+established for the Meetings module's own stamp. Commit and include in the same deploy -
 don't ship this feature without it, that stamp is the whole point of the earlier
 side-task.
 
@@ -985,12 +985,12 @@ side-task.
 - **Spec coverage**: Task 1 = routing; Task 2 = lead (spec §"Lead"); Task 3 = closer (spec
   §"Closer"); Task 4-5 = slot + write-path-via-bridge (spec §"Slot", §"Write path"); Task 6
   = entry point (spec §"Entry"); Task 7 = the spec's Testing section end-to-end pass. The
-  spec's "Explicitly out of scope (v1)" cross-closer overview has correctly no task here —
+  spec's "Explicitly out of scope (v1)" cross-closer overview has correctly no task here -
   confirmed intentional, not a gap.
 - **Placeholder scan**: Task 6, Step 1 and Step 5 are intentionally scoped as
   "read the real file, then follow its exact shape" rather than pre-written code, because
   `standard-command-menu-item.constant.ts` and the exact drawer-item styling weren't read
-  in full during design research (flagged honestly in both the spec and here) — this is a
+  in full during design research (flagged honestly in both the spec and here) - this is a
   deliberate, bounded exception to "no placeholders," not a skipped step. Every other task
   has real, complete code.
 - **Type consistency**: `calcomEventSlug` spelled identically here and in the companion
@@ -1001,7 +1001,7 @@ side-task.
 - **Known research gap, flagged rather than papered over**: this plan's code was written
   against research whose file paths were spot-checked (AppPath.ts, the router file) and
   found accurate, but whose `standard-command-menu-item.constant.ts` content was described
-  secondhand, not read directly — hence Task 6 Step 1 requires reading it fresh rather than
+  secondhand, not read directly - hence Task 6 Step 1 requires reading it fresh rather than
   trusting a paraphrase, after this same research agent was caught citing one wrong file
   path elsewhere (`apps/meetings/scripts/` instead of the real `scripts/` at repo root)
   during this plan's preparation.
