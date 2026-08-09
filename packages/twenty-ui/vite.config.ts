@@ -43,9 +43,21 @@ export default defineConfig(({ command }) => {
     ? path.resolve(__dirname, './tsconfig.lib.json')
     : path.resolve(__dirname, './tsconfig.json');
 
+  // vite-plugin-checker spawns `tsc` via a shell-joined, unquoted command
+  // string (`[bin, ...args].join(' ')`), so an absolute --project path
+  // containing spaces (e.g. a workspace under a directory like
+  // "AI Brain/Claude Universal") gets split into multiple shell tokens and
+  // tsc fails with TS5042 ("Option 'project' cannot be mixed with source
+  // files on a command line"). A path relative to this config's directory
+  // has no spaces and sidesteps the bug; it resolves correctly because
+  // the checker always spawns with cwd set to this project's root.
+  const checkerTsConfigPath = isBuildCommand
+    ? './tsconfig.lib.json'
+    : './tsconfig.json';
+
   const checkersConfig: Checkers = {
     typescript: {
-      tsconfigPath: tsConfigPath,
+      tsconfigPath: checkerTsConfigPath,
     },
   };
 
